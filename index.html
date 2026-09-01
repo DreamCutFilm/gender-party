@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Гендер-паті Едуарда та Катерини</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --linen:        #F5EFE2;
+    --linen-deep:    #ECE2CC;
+    --ink:          #2B2420;
+    --ink-soft:     #5B4F45;
+    --embroidery:   #B23A2F;
+    --embroidery-dk:#8C2C23;
+    --gold:         #C9962E;
+    --boy:          #4C7EA8;
+    --boy-soft:     #DCE8F0;
+    --girl:         #C9587A;
+    --girl-soft:    #F5DEE5;
+    --card:         #FFFCF5;
+    --shadow:       rgba(43,36,32,0.12);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--linen);
+    color:var(--ink);
+    font-family:'Karla', ui-sans-serif, system-ui, sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces', Georgia, serif;
+    font-weight:600;
+    text-wrap:balance;
+    margin:0;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 24px; }
+
+  /* ---------- decorative cross-stitch border ---------- */
+  .stitch-border{ width:100%; height:18px; display:block; }
+  .stitch-border.flip{ transform:scaleY(-1); }
+
+  /* ---------- header ---------- */
+  header{ padding:56px 0 40px; text-align:center; }
+  .wreath{ width:150px; height:auto; margin:0 auto 18px; display:block; }
+  .eyebrow{
+    font-size:13px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--embroidery); font-weight:700; margin-bottom:10px;
+  }
+  header h1{ font-size:clamp(32px,6vw,48px); color:var(--ink); }
+  header h1 .amp{ color:var(--embroidery); font-style:italic; font-weight:500; }
+  header p.sub{
+    margin-top:14px; font-size:17px; color:var(--ink-soft); max-width:480px;
+    margin-left:auto; margin-right:auto;
+  }
+
+  section{ padding:44px 0; }
+  .divider{ border:none; border-top:1px dashed var(--linen-deep); margin:0; }
+
+  .section-title{ text-align:center; margin-bottom:8px; font-size:clamp(24px,4vw,30px); }
+  .section-lede{
+    text-align:center; color:var(--ink-soft); max-width:440px;
+    margin:0 auto 32px; font-size:15.5px;
+  }
+
+  /* ---------- mystery / reveal panel ---------- */
+  .stage{
+    position:relative; border-radius:22px; overflow:hidden;
+    background:linear-gradient(155deg,var(--linen-deep),var(--linen));
+    border:1px solid var(--linen-deep);
+    padding:44px 28px; text-align:center;
+    box-shadow:0 18px 40px -20px var(--shadow);
+  }
+  .stage canvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .stage .content{ position:relative; z-index:2; }
+  .mystery-icon{ width:64px; height:64px; margin:0 auto 18px; display:block; }
+  .stage h2{ font-size:clamp(22px,4vw,28px); }
+  .stage p{ color:var(--ink-soft); margin-top:10px; font-size:15px; }
+  .stage.is-boy{ background:linear-gradient(155deg,var(--boy-soft),var(--linen)); }
+  .stage.is-girl{ background:linear-gradient(155deg,var(--girl-soft),var(--linen)); }
+  .reveal-word{
+    font-size:clamp(40px,9vw,64px); margin:6px 0 4px;
+  }
+  .reveal-word.boy{ color:var(--boy); }
+  .reveal-word.girl{ color:var(--girl); }
+
+  /* ---------- poll ---------- */
+  .poll-cards{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:520px){ .poll-cards{ grid-template-columns:1fr; } }
+  .poll-card{
+    background:var(--card); border:2px solid var(--linen-deep); border-radius:18px;
+    padding:22px 18px; text-align:center; cursor:pointer;
+    transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    font-family:'Karla', sans-serif;
+  }
+  .poll-card:hover{ transform:translateY(-3px); box-shadow:0 14px 26px -16px var(--shadow); }
+  .poll-card:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
+  .poll-card svg{ width:46px; height:46px; margin-bottom:10px; }
+  .poll-card .label{ font-family:'Fraunces',serif; font-size:20px; font-weight:600; }
+  .poll-card.boy{ border-color:var(--boy-soft); }
+  .poll-card.boy:hover, .poll-card.boy.chosen{ border-color:var(--boy); }
+  .poll-card.girl{ border-color:var(--girl-soft); }
+  .poll-card.girl:hover, .poll-card.girl.chosen{ border-color:var(--girl); }
+  .poll-card .bar-track{
+    margin-top:14px; height:10px; border-radius:6px; background:var(--linen-deep);
+    overflow:hidden;
+  }
+  .poll-card .bar-fill{ height:100%; border-radius:6px; transition:width .5s ease; }
+  .poll-card.boy .bar-fill{ background:var(--boy); }
+  .poll-card.girl .bar-fill{ background:var(--girl); }
+  .poll-card .pct{
+    margin-top:8px; font-size:13px; color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;
+  }
+  .poll-name{
+    display:block; width:100%; margin:18px 0 0; padding:12px 14px;
+    border-radius:12px; border:1.5px solid var(--linen-deep); background:var(--card);
+    font:15px 'Karla',sans-serif; color:var(--ink);
+  }
+  .poll-name:focus{ outline:2px solid var(--gold); }
+  .poll-status{
+    text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);
+    min-height:20px;
+  }
+
+  /* ---------- wishes wall ---------- */
+  .wish-form{
+    display:flex; flex-direction:column; gap:10px; max-width:480px; margin:0 auto 32px;
+  }
+  .wish-form input, .wish-form textarea{
+    padding:12px 14px; border-radius:12px; border:1.5px solid var(--linen-deep);
+    background:var(--card); font:15px 'Karla',sans-serif; color:var(--ink); resize:vertical;
+  }
+  .wish-form input:focus, .wish-form textarea:focus{ outline:2px solid var(--gold); }
+  .wish-form button{
+    align-self:center; padding:12px 28px; border-radius:999px; border:none;
+    background:var(--embroidery); color:#FFF9F0; font:600 15px 'Karla',sans-serif;
+    letter-spacing:.02em; cursor:pointer; transition:background .15s ease;
+  }
+  .wish-form button:hover{ background:var(--embroidery-dk); }
+  .wish-form button:disabled{ opacity:.55; cursor:default; }
+
+  .wish-wall{ display:grid; gap:12px; }
+  .wish-card{
+    background:var(--card); border:1px solid var(--linen-deep); border-left:4px solid var(--gold);
+    border-radius:4px 14px 14px 4px; padding:14px 18px;
+  }
+  .wish-card .who{ font-weight:700; font-size:14px; color:var(--embroidery-dk); }
+  .wish-card .msg{ margin-top:4px; font-size:15px; }
+  .wish-empty{ text-align:center; color:var(--ink-soft); font-size:14.5px; padding:20px 0; }
+
+  footer{ text-align:center; padding:36px 0 56px; color:var(--ink-soft); font-size:13.5px; }
+  footer .heart{ color:var(--embroidery); }
+
+  [hidden]{ display:none !important; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<svg class="stitch-border" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
+  <defs>
+    <pattern id="stitch" width="32" height="18" patternUnits="userSpaceOnUse">
+      <rect width="32" height="18" fill="none"/>
+      <path d="M16 2 L26 9 L16 16 L6 9 Z" fill="#B23A2F"/>
+      <path d="M16 6 L20 9 L16 12 L12 9 Z" fill="#F5EFE2"/>
+    </pattern>
+  </defs>
+  <rect width="320" height="18" fill="url(#stitch)"/>
+</svg>
+
+<div class="wrap">
+
+  <header>
+    <svg class="wreath" viewBox="0 0 200 90" aria-hidden="true">
+      <path d="M20 70 Q100 -10 180 70" fill="none" stroke="#7A8450" stroke-width="3"/>
+      <g id="flowers"></g>
+    </svg>
+    <div class="eyebrow">Гендер-паті</div>
+    <h1>Едуард <span class="amp">&amp;</span> Катерина</h1>
+    <p class="sub">Ми чекаємо на маленький скарб — і поки що самі не знаємо, хто до нас прийде: синочок чи донечка. Допоможіть нам угадати, а коли таємниця розкриється — дізнаєтеся про це першими, тут-таки, наживо.</p>
+  </header>
+
+  <svg class="stitch-border" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true"><rect width="320" height="18" fill="url(#stitch)"/></svg>
+
+  <section id="stage-section">
+    <div class="stage" id="stage">
+      <canvas id="confetti"></canvas>
+      <div class="content">
+        <svg class="mystery-icon" id="mysteryIcon" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="30" fill="none" stroke="#C9962E" stroke-width="2.5" stroke-dasharray="4 6"/>
+          <text x="32" y="42" text-anchor="middle" font-family="Fraunces, serif" font-size="30" fill="#B23A2F">?</text>
+        </svg>
+        <h2 id="stageTitle">Таємниця ще чекає...</h2>
+        <p id="stageSub">Щойно Едуард і Катерина дізнаються відповідь — ця сторінка сама покаже її всім, хто зараз її відкриє. Лишайтеся на зв'язку!</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="poll-section">
+    <h2 class="section-title">Ваш прогноз?</h2>
+    <p class="section-lede">Проголосуйте, поки триває таємниця — після розкриття подивимось, хто вгадав більше.</p>
+
+    <div class="poll-cards">
+      <button class="poll-card boy" id="voteBoy" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="20" fill="#DCE8F0"/>
+          <circle cx="19" cy="29" r="9" fill="none" stroke="#4C7EA8" stroke-width="3"/>
+          <path d="M25.5 22.5 L34 14M34 14 H27M34 14 V21" fill="none" stroke="#4C7EA8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="label">Хлопчик</div>
+        <div class="bar-track"><div class="bar-fill" id="boyBar" style="width:0%"></div></div>
+        <div class="pct" id="boyPct">0% • 0 голосів</div>
+      </button>
+      <button class="poll-card girl" id="voteGirl" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="20" fill="#F5DEE5"/>
+          <circle cx="24" cy="18" r="9" fill="none" stroke="#C9587A" stroke-width="3"/>
+          <path d="M24 27 V37M17.5 32 H30.5" fill="none" stroke="#C9587A" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="label">Дівчинка</div>
+        <div class="bar-track"><div class="bar-fill" id="girlBar" style="width:0%"></div></div>
+        <div class="pct" id="girlPct">0% • 0 голосів</div>
+      </button>
+    </div>
+
+    <input class="poll-name" id="voterName" type="text" maxlength="40" placeholder="Ваше ім'я (щоб ми знали, хто вгадав) — необов'язково">
+    <div class="poll-status" id="pollStatus"></div>
+  </section>
+
+  <svg class="stitch-border" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true"><rect width="320" height="18" fill="url(#stitch)"/></svg>
+
+  <section id="wish-section">
+    <h2 class="section-title">Стіна побажань</h2>
+    <p class="section-lede">Залиште теплі слова для малюка — Едуард і Катерина зберігатимуть цю сторінку на згадку.</p>
+
+    <form class="wish-form" id="wishForm">
+      <input type="text" id="wishName" maxlength="40" placeholder="Ваше ім'я" required>
+      <textarea id="wishMessage" rows="3" maxlength="400" placeholder="Ваше побажання малюку..." required></textarea>
+      <button type="submit" id="wishSubmit">Залишити побажання</button>
+    </form>
+
+    <div class="wish-wall" id="wishWall">
+      <div class="wish-empty">Будьте першими, хто залишить побажання 💛</div>
+    </div>
+  </section>
+
+</div>
+
+<svg class="stitch-border flip" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true"><rect width="320" height="18" fill="url(#stitch)"/></svg>
+
+<footer>
+  З любов'ю зроблено для маленької родини <span class="heart">♥</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ====================================================================
+  // 1. НАЛАШТУВАННЯ — вставте сюди дані свого проєкту Supabase
+  //    (Supabase Dashboard → Project Settings → API)
+  // ====================================================================
+  var SUPABASE_URL = "https://zojldsstrjtmfztgmtkj.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvamxkc3N0cmp0bWZ6dGdtdGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyOTM3MzIsImV4cCI6MjEwMzg2OTczMn0.9vi-_52mqXUF9sSx_8LwC34cN5AFADH93lP1xASXt6g";
+  // ====================================================================
+
+  var configured = SUPABASE_URL.indexOf("YOUR_SUPABASE_URL") === -1 &&
+                    SUPABASE_ANON_KEY.indexOf("YOUR_SUPABASE_ANON_KEY") === -1;
+
+  // ---- decorative flower wreath (drawn once, no external assets) ----
+  (function drawWreath(){
+    var g = document.getElementById("flowers");
+    var petalsRed = "#B23A2F", petalsWhite = "#FBF6EC", leaf = "#7A8450", center = "#C9962E";
+    var positions = [
+      [24,64],[46,42],[70,24],[100,14],[130,24],[154,42],[176,64]
+    ];
+    positions.forEach(function(pos, i){
+      var color = (i % 2 === 0) ? petalsRed : petalsWhite;
+      var x = pos[0], y = pos[1];
+      var flower = document.createElementNS("http://www.w3.org/2000/svg","g");
+      flower.innerHTML =
+        '<circle cx="'+(x-5)+'" cy="'+y+'" r="5" fill="'+color+'"/>' +
+        '<circle cx="'+(x+5)+'" cy="'+y+'" r="5" fill="'+color+'"/>' +
+        '<circle cx="'+x+'" cy="'+(y-5)+'" r="5" fill="'+color+'"/>' +
+        '<circle cx="'+x+'" cy="'+(y+5)+'" r="5" fill="'+color+'"/>' +
+        '<circle cx="'+x+'" cy="'+y+'" r="3.4" fill="'+center+'"/>' +
+        '<path d="M'+x+' '+(y+8)+' q-4 6 -9 5" stroke="'+leaf+'" stroke-width="2" fill="none"/>';
+      g.appendChild(flower);
+    });
+  })();
+
+  if(!configured){
+    document.getElementById("stageTitle").textContent = "Сторінку ще не підключено до бази даних";
+    document.getElementById("stageSub").textContent = "Відкрийте index.html і вставте SUPABASE_URL та SUPABASE_ANON_KEY зі свого проєкту Supabase (див. README).";
+    return;
+  }
+
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---- helpers ----
+  function pct(a,b){ var t=a+b; return t===0 ? 0 : Math.round((a/t)*100); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ==================== POLL ====================
+  var boyCount = 0, girlCount = 0;
+  var votedKey = "genderparty_voted";
+
+  function renderPoll(){
+    var bp = pct(boyCount, girlCount), gp = pct(girlCount, boyCount);
+    document.getElementById("boyBar").style.width = bp + "%";
+    document.getElementById("girlBar").style.width = gp + "%";
+    document.getElementById("boyPct").textContent = bp + "% • " + boyCount + (boyCount===1?" голос":" голосів");
+    document.getElementById("girlPct").textContent = gp + "% • " + girlCount + (girlCount===1?" голос":" голосів");
+  }
+
+  function refreshCounts(){
+    Promise.all([
+      sb.from("guesses").select("*", {count:"exact", head:true}).eq("guess","boy"),
+      sb.from("guesses").select("*", {count:"exact", head:true}).eq("guess","girl")
+    ]).then(function(res){
+      boyCount = res[0].count || 0;
+      girlCount = res[1].count || 0;
+      renderPoll();
+    });
+  }
+
+  function lockPollUI(){
+    document.getElementById("voteBoy").disabled = true;
+    document.getElementById("voteGirl").disabled = true;
+    document.getElementById("voterName").disabled = true;
+  }
+
+  function castVote(choice){
+    if(localStorage.getItem(votedKey)) return;
+    var status = document.getElementById("pollStatus");
+    var nameInput = document.getElementById("voterName");
+    status.textContent = "Зберігаємо ваш голос...";
+    sb.from("guesses").insert({
+      guess: choice,
+      guest_name: nameInput.value.trim() || null
+    }).then(function(res){
+      if(res.error){
+        status.textContent = "Не вдалося зберегти голос. Спробуйте ще раз.";
+        return;
+      }
+      localStorage.setItem(votedKey, choice);
+      document.getElementById(choice === "boy" ? "voteBoy" : "voteGirl").classList.add("chosen");
+      lockPollUI();
+      status.textContent = choice === "boy"
+        ? "Дякуємо! Ви вгадуєте на хлопчика."
+        : "Дякуємо! Ви вгадуєте на дівчинку.";
+    });
+  }
+
+  document.getElementById("voteBoy").addEventListener("click", function(){ castVote("boy"); });
+  document.getElementById("voteGirl").addEventListener("click", function(){ castVote("girl"); });
+
+  var already = localStorage.getItem(votedKey);
+  if(already){
+    lockPollUI();
+    document.getElementById(already === "boy" ? "voteBoy" : "voteGirl").classList.add("chosen");
+    document.getElementById("pollStatus").textContent = "Ви вже проголосували раніше. Дякуємо!";
+  }
+
+  refreshCounts();
+  sb.channel("guesses-live")
+    .on("postgres_changes", {event:"INSERT", schema:"public", table:"guesses"}, refreshCounts)
+    .subscribe();
+
+  // ==================== WISHES ====================
+  var wall = document.getElementById("wishWall");
+  var seenWishIds = {};
+
+  function wishCardHtml(w){
+    return '<div class="wish-card"><div class="who">'+escapeHtml(w.guest_name)+'</div>' +
+           '<div class="msg">'+escapeHtml(w.message)+'</div></div>';
+  }
+
+  function renderWishes(rows){
+    if(!rows.length){
+      wall.innerHTML = '<div class="wish-empty">Будьте першими, хто залишить побажання 💛</div>';
+      return;
+    }
+    wall.innerHTML = rows.map(wishCardHtml).join("");
+    rows.forEach(function(w){ seenWishIds[w.id] = true; });
+  }
+
+  function loadWishes(){
+    sb.from("wishes").select("*").order("created_at", {ascending:false}).limit(60)
+      .then(function(res){
+        if(res.data) renderWishes(res.data);
+      });
+  }
+
+  document.getElementById("wishForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var name = document.getElementById("wishName").value.trim();
+    var message = document.getElementById("wishMessage").value.trim();
+    if(!name || !message) return;
+    var btn = document.getElementById("wishSubmit");
+    btn.disabled = true; btn.textContent = "Надсилаємо...";
+    sb.from("wishes").insert({guest_name:name, message:message}).then(function(res){
+      btn.disabled = false; btn.textContent = "Залишити побажання";
+      if(!res.error){
+        document.getElementById("wishForm").reset();
+      }
+    });
+  });
+
+  loadWishes();
+  sb.channel("wishes-live")
+    .on("postgres_changes", {event:"INSERT", schema:"public", table:"wishes"}, function(payload){
+      if(seenWishIds[payload.new.id]) return;
+      loadWishes();
+    })
+    .subscribe();
+
+  // ==================== REVEAL ====================
+  var canvas = document.getElementById("confetti");
+  var ctx = canvas.getContext("2d");
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function sizeCanvas(){
+    var stage = document.getElementById("stage");
+    canvas.width = stage.clientWidth;
+    canvas.height = stage.clientHeight;
+  }
+  window.addEventListener("resize", sizeCanvas);
+
+  function launchConfetti(color){
+    if(reduceMotion) return;
+    sizeCanvas();
+    var palette = color === "boy" ? ["#4C7EA8","#8FB6D6","#C9962E"] : ["#C9587A","#E7A9BE","#C9962E"];
+    var pieces = [];
+    for(var i=0;i<140;i++){
+      pieces.push({
+        x: Math.random()*canvas.width,
+        y: -20 - Math.random()*canvas.height*0.5,
+        vy: 2 + Math.random()*2.5,
+        vx: (Math.random()-0.5)*1.6,
+        size: 4 + Math.random()*5,
+        color: palette[Math.floor(Math.random()*palette.length)],
+        rot: Math.random()*Math.PI,
+        vr: (Math.random()-0.5)*0.2
+      });
+    }
+    var start = performance.now();
+    function frame(now){
+      var elapsed = now - start;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      pieces.forEach(function(p){
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+        ctx.restore();
+      });
+      if(elapsed < 4200){
+        requestAnimationFrame(frame);
+      } else {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function applyReveal(row){
+    var stage = document.getElementById("stage");
+    var title = document.getElementById("stageTitle");
+    var sub = document.getElementById("stageSub");
+    var icon = document.getElementById("mysteryIcon");
+
+    if(row && row.revealed && row.gender){
+      var isBoy = row.gender === "boy";
+      stage.classList.remove("is-boy","is-girl");
+      stage.classList.add(isBoy ? "is-boy" : "is-girl");
+      icon.style.display = "none";
+      title.innerHTML = 'Це... <span class="reveal-word '+(isBoy?"boy":"girl")+'">'+(isBoy?"хлопчик!":"дівчинка!")+'</span>';
+      sub.textContent = "Едуард і Катерина щасливі поділитися цією новиною. Дякуємо, що були з нами в очікуванні!";
+      launchConfetti(row.gender);
+    } else {
+      title.textContent = "Таємниця ще чекає...";
+      sub.textContent = "Щойно Едуард і Катерина дізнаються відповідь — ця сторінка сама покаже її всім, хто зараз її відкриє. Лишайтеся на зв'язку!";
+      icon.style.display = "";
+      stage.classList.remove("is-boy","is-girl");
+    }
+  }
+
+  sb.from("reveal").select("*").eq("id",1).single().then(function(res){
+    if(res.data) applyReveal(res.data);
+  });
+
+  sb.channel("reveal-live")
+    .on("postgres_changes", {event:"UPDATE", schema:"public", table:"reveal"}, function(payload){
+      applyReveal(payload.new);
+    })
+    .subscribe();
+
+})();
+</script>
+</body>
+</html>
