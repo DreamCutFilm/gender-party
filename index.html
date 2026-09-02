@@ -173,6 +173,22 @@
   .wish-card .msg{ margin-top:4px; font-size:15px; }
   .wish-empty{ text-align:center; color:var(--ink-soft); font-size:14.5px; padding:20px 0; }
 
+  /* ---------- support the young parents ---------- */
+  .support-block{ text-align:center; margin-top:32px; }
+  .support-info{
+    margin:18px auto 0; max-width:300px; background:var(--card);
+    border:1.5px solid var(--linen-deep); border-radius:16px; padding:20px 22px;
+    text-align:center; animation:pop-in .4s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .support-bank{
+    font-family:'Fraunces',serif; font-weight:600; font-size:15px; color:var(--ink-soft);
+  }
+  .support-number{
+    margin-top:8px; font-size:22px; font-weight:700; letter-spacing:.03em;
+    font-variant-numeric:tabular-nums; color:var(--ink); cursor:pointer;
+  }
+  .support-hint{ margin-top:8px; font-size:12.5px; color:var(--ink-soft); }
+
   footer{ text-align:center; padding:36px 0 56px; color:var(--ink-soft); font-size:13.5px; }
   footer .heart{ color:var(--embroidery); }
 
@@ -271,6 +287,15 @@
 
     <div class="wish-wall" id="wishWall">
       <div class="wish-empty">Будьте першими, хто залишить побажання 💛</div>
+    </div>
+
+    <div class="support-block">
+      <button class="check-btn" id="supportBtn" type="button">Підтримати молодих батьків</button>
+      <div class="support-info" id="supportInfo" hidden>
+        <div class="support-bank">monobank</div>
+        <div class="support-number" id="supportNumber">4441 1110 3456 3159</div>
+        <div class="support-hint" id="supportHint">Натисніть на номер, щоб скопіювати</div>
+      </div>
     </div>
   </section>
 
@@ -517,6 +542,21 @@
       loadWishes();
     })
     .subscribe();
+
+  // ==================== ПІДТРИМАТИ МОЛОДИХ БАТЬКІВ ====================
+  document.getElementById("supportBtn").addEventListener("click", function(){
+    document.getElementById("supportInfo").hidden = false;
+  });
+
+  document.getElementById("supportNumber").addEventListener("click", function(){
+    var raw = "4441111034563159";
+    var hint = document.getElementById("supportHint");
+    if(!navigator.clipboard || !navigator.clipboard.writeText) return;
+    navigator.clipboard.writeText(raw).then(function(){
+      hint.textContent = "Скопійовано!";
+      setTimeout(function(){ hint.textContent = "Натисніть на номер, щоб скопіювати"; }, 2000);
+    });
+  });
 
   // ==================== КОНФЕТІ ДЛЯ РЕЗУЛЬТАТУ ====================
   var CONFETTI_DURATION = 15000; // тривалість "сипання" конфеті, мс
