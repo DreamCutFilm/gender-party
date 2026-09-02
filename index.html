@@ -335,7 +335,42 @@
     return;
   }
 
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var sb = null;
+
+  function showConnectionError(){
+    var status = document.getElementById("pollStatus");
+    if(status) status.textContent = "Не вдалося підключитися до сервера. Перевірте інтернет і оновіть сторінку.";
+    var voteBoy = document.getElementById("voteBoy");
+    var voteGirl = document.getElementById("voteGirl");
+    if(voteBoy) voteBoy.disabled = true;
+    if(voteGirl) voteGirl.disabled = true;
+  }
+
+  // Бібліотека Supabase вантажиться з CDN окремим тегом <script> вище. На нестабільному
+  // мобільному інтернеті цей запит іноді не встигає завантажитись до старту цього скрипта —
+  // тому чекаємо на неї (і пробуємо перезавантажити), а не одразу падаємо з помилкою.
+  var bootAttempts = 0, scriptReloaded = false;
+  function boot(){
+    if(window.supabase){
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      startApp();
+      return;
+    }
+    bootAttempts++;
+    if(bootAttempts === 5 && !scriptReloaded){
+      scriptReloaded = true;
+      var retryTag = document.createElement("script");
+      retryTag.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+      document.head.appendChild(retryTag);
+    }
+    if(bootAttempts <= 25){
+      setTimeout(boot, 400);
+    } else {
+      showConnectionError();
+    }
+  }
+
+  function startApp(){
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---- helpers ----
@@ -571,6 +606,9 @@
     requestAnimationFrame(frame);
   }
 
+  } // кінець startApp()
+
+  boot();
 })();
 </script>
 </body>
