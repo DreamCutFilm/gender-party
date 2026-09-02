@@ -96,12 +96,35 @@
     margin-top:8px; font-size:13px; color:var(--ink-soft);
     font-variant-numeric:tabular-nums;
   }
-  .poll-name{
-    display:block; width:100%; margin:18px 0 0; padding:12px 14px;
-    border-radius:12px; border:1.5px solid var(--linen-deep); background:var(--card);
-    font:15px 'Karla',sans-serif; color:var(--ink);
+  /* ---------- крок 1: імʼя (обовʼязкове) ---------- */
+  .name-field{
+    max-width:480px; margin:0 auto 26px; padding:18px 20px 16px;
+    background:var(--card); border:2px solid var(--linen-deep); border-radius:18px;
+    transition:border-color .2s ease, box-shadow .2s ease;
   }
-  .poll-name:focus{ outline:2px solid var(--gold); }
+  .name-field.needs-name{
+    border-color:var(--gold);
+    box-shadow:0 0 0 4px rgba(201,150,46,.16);
+  }
+  .name-label{
+    display:block; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--embroidery); font-weight:700; margin-bottom:8px;
+  }
+  .poll-name{
+    display:block; width:100%; padding:13px 14px;
+    border-radius:12px; border:1.5px solid var(--linen-deep); background:var(--linen);
+    font:16px 'Karla',sans-serif; color:var(--ink);
+  }
+  .poll-name:focus{ outline:2px solid var(--gold); background:var(--card); }
+  .name-hint{ margin-top:8px; font-size:13px; color:var(--ink-soft); }
+  .name-field.filled .name-hint{ color:#5C7A4A; }
+
+  .poll-step2{
+    text-align:center; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--embroidery); font-weight:700; margin-bottom:12px;
+  }
+  .poll-card:disabled{ opacity:.5; cursor:default; }
+  .poll-card:disabled:hover{ transform:none; box-shadow:none; }
   .poll-status{
     text-align:center; margin-top:14px; font-size:14px; color:var(--ink-soft);
     min-height:20px;
@@ -228,8 +251,17 @@
     <h2 class="section-title">Ваш прогноз?</h2>
     <p class="section-lede">Проголосуйте, поки триває таємниця — після розкриття подивимось, хто вгадав більше.</p>
 
+    <div class="name-field needs-name" id="nameField">
+      <label class="name-label" for="voterName">Крок 1 — впишіть своє ім'я</label>
+      <input class="poll-name" id="voterName" type="text" maxlength="40" autocomplete="name"
+             placeholder="Наприклад: Оксана" required>
+      <div class="name-hint" id="nameHint">Без імені ми не знатимемо, хто вгадав 🙂</div>
+    </div>
+
+    <div class="poll-step2">Крок 2 — ваш прогноз</div>
+
     <div class="poll-cards">
-      <button class="poll-card boy" id="voteBoy" type="button">
+      <button class="poll-card boy" id="voteBoy" type="button" disabled>
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <circle cx="24" cy="24" r="20" fill="#DCE8F0"/>
           <circle cx="19" cy="29" r="9" fill="none" stroke="#4C7EA8" stroke-width="3"/>
@@ -239,7 +271,7 @@
         <div class="bar-track"><div class="bar-fill" id="boyBar" style="width:0%"></div></div>
         <div class="pct" id="boyPct">0% • 0 голосів</div>
       </button>
-      <button class="poll-card girl" id="voteGirl" type="button">
+      <button class="poll-card girl" id="voteGirl" type="button" disabled>
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <circle cx="24" cy="24" r="20" fill="#F5DEE5"/>
           <circle cx="24" cy="18" r="9" fill="none" stroke="#C9587A" stroke-width="3"/>
@@ -251,7 +283,6 @@
       </button>
     </div>
 
-    <input class="poll-name" id="voterName" type="text" maxlength="40" placeholder="Ваше ім'я (щоб ми знали, хто вгадав) — необов'язково">
     <div class="poll-status" id="pollStatus"></div>
 
     <div class="reveal-trigger">
@@ -325,7 +356,7 @@
   // (+03:00 — літній час, діє до кінця жовтня; взимку буде +02:00).
   // Це фіксована мить у часі: перезавантаження сторінки нічого не скидає,
   // відлік у всіх гостей однаковий і завершується рівно о цій хвилині.
-  var UNLOCK_AT = "2026-09-02T23:25:00+03:00";
+  var UNLOCK_AT = "2026-09-02T23:35:00+03:00";
   // ====================================================================
 
   var configured = SUPABASE_URL.indexOf("YOUR_SUPABASE_URL") === -1 &&
@@ -439,12 +470,39 @@
     document.getElementById("voteBoy").disabled = true;
     document.getElementById("voteGirl").disabled = true;
     document.getElementById("voterName").disabled = true;
+    var field = document.getElementById("nameField");
+    field.classList.remove("needs-name", "filled");
+    document.getElementById("nameHint").textContent = "";
+  }
+
+  // Імʼя обовʼязкове: доки поле порожнє, кнопки голосування заблоковані,
+  // а саме поле підсвічене, щоб його не можна було не помітити.
+  function hasName(){
+    return document.getElementById("voterName").value.trim().length > 0;
+  }
+
+  function updateNameState(){
+    if(localStorage.getItem(votedKey)) return; // вже проголосував — нічого не чіпаємо
+    var filled = hasName();
+    var field = document.getElementById("nameField");
+    field.classList.toggle("needs-name", !filled);
+    field.classList.toggle("filled", filled);
+    document.getElementById("voteBoy").disabled = !filled;
+    document.getElementById("voteGirl").disabled = !filled;
+    document.getElementById("nameHint").textContent = filled
+      ? "Готово — тепер оберіть свій прогноз 👇"
+      : "Без імені ми не знатимемо, хто вгадав 🙂";
   }
 
   function castVote(choice){
     if(localStorage.getItem(votedKey)) return;
     var status = document.getElementById("pollStatus");
     var nameInput = document.getElementById("voterName");
+    if(!hasName()){
+      status.textContent = "Спочатку впишіть своє імʼя 🙂";
+      nameInput.focus();
+      return;
+    }
     status.textContent = "Зберігаємо ваш голос...";
     sb.from("guesses").insert({
       guess: choice,
@@ -466,6 +524,8 @@
 
   document.getElementById("voteBoy").addEventListener("click", function(){ castVote("boy"); });
   document.getElementById("voteGirl").addEventListener("click", function(){ castVote("girl"); });
+  document.getElementById("voterName").addEventListener("input", updateNameState);
+  updateNameState();
 
   // ============ РОЗКРИТТЯ: ТАЙМЕР → КНОПКА → ВІДЕО → РЕЗУЛЬТАТ ============
   // ВАЖЛИВО: цей блок має стояти ВИЩЕ за перевірку "ви вже голосували" нижче,
