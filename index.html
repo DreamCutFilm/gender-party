@@ -114,6 +114,20 @@
     pointer-events:none; z-index:5;
   }
   .reveal-trigger{ text-align:center; margin-top:22px; }
+  .countdown{
+    max-width:320px; margin:0 auto; padding:20px 22px;
+    background:var(--card); border:1.5px solid var(--linen-deep); border-radius:18px;
+    box-shadow:0 14px 30px -20px var(--shadow);
+  }
+  .countdown-label{
+    font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--embroidery); font-weight:700;
+  }
+  .countdown-time{
+    margin-top:8px; font-family:'Fraunces',serif; font-weight:700;
+    font-size:clamp(30px,8vw,40px); color:var(--ink);
+    font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  }
   .check-btn{
     padding:14px 34px; border-radius:999px; border:none;
     background:var(--gold); color:#FFF9F0; font:600 16px 'Karla',sans-serif;
@@ -241,6 +255,10 @@
     <div class="poll-status" id="pollStatus"></div>
 
     <div class="reveal-trigger">
+      <div class="countdown" id="countdown" hidden>
+        <div class="countdown-label">До розкриття таємниці залишилось</div>
+        <div class="countdown-time" id="countdownTime">--:--:--</div>
+      </div>
       <button class="check-btn" id="checkBtn" type="button" hidden>Перевірити 🔍</button>
     </div>
 
@@ -298,6 +316,15 @@
   // частина посилання після /shorts/ або після v=) та результат ("boy" або "girl").
   var REVEAL_VIDEO_ID = "yCy5QHUAgTs";
   var REVEAL_GENDER = "girl"; // тимчасово захардкоджено для тесту — потім підключимо до бази
+
+  // Таймер зворотного відліку до кнопки "Перевірити".
+  // ТЕСТОВИЙ РЕЖИМ: скільки хвилин відлічувати від відкриття сторінки.
+  //   Щоб перейти на бойовий режим — постав тут null, і тоді працюватиме
+  //   точна дата й час з UNLOCK_AT нижче.
+  var UNLOCK_TEST_MINUTES = 2;
+  // БОЙОВИЙ РЕЖИМ: точний момент розблокування за київським часом
+  // (+03:00 — літній час, діє до кінця жовтня; взимку буде +02:00).
+  var UNLOCK_AT = "2026-09-03T12:00:00+03:00";
   // ====================================================================
 
   var configured = SUPABASE_URL.indexOf("YOUR_SUPABASE_URL") === -1 &&
@@ -383,7 +410,7 @@
 
   // ==================== POLL ====================
   var boyCount = 0, girlCount = 0;
-  var votedKey = "genderparty_voted";
+  var votedKey = "genderparty_voted_v2"; // v2 — щоб після очищення бази всі могли проголосувати наново
 
   function renderPoll(){
     var bp = pct(boyCount, girlCount), gp = pct(girlCount, boyCount);
@@ -429,7 +456,7 @@
       status.textContent = choice === "boy"
         ? "Дякуємо! Ви вгадуєте на хлопчика."
         : "Дякуємо! Ви вгадуєте на дівчинку.";
-      showCheckButton();
+      showRevealTrigger();
     });
   }
 
@@ -441,12 +468,53 @@
     lockPollUI();
     document.getElementById(already === "boy" ? "voteBoy" : "voteGirl").classList.add("chosen");
     document.getElementById("pollStatus").textContent = "Ви вже проголосували раніше. Дякуємо!";
-    showCheckButton();
+    showRevealTrigger();
   }
 
-  // ==================== РОЗКРИТТЯ: КНОПКА → ВІДЕО → РЕЗУЛЬТАТ ====================
-  function showCheckButton(){
-    document.getElementById("checkBtn").hidden = false;
+  // ============ РОЗКРИТТЯ: ТАЙМЕР → КНОПКА → ВІДЕО → РЕЗУЛЬТАТ ============
+  // Момент розблокування рахуємо один раз при завантаженні сторінки.
+  var unlockAtMs = (function(){
+    if(typeof UNLOCK_TEST_MINUTES === "number"){
+      return Date.now() + UNLOCK_TEST_MINUTES * 60 * 1000;
+    }
+    var t = new Date(UNLOCK_AT).getTime();
+    return isNaN(t) ? 0 : t; // некоректна дата — не блокуємо гостей
+  })();
+
+  var countdownTimer = null;
+
+  function formatTimeLeft(ms){
+    var total = Math.max(0, Math.floor(ms / 1000));
+    var days = Math.floor(total / 86400);
+    var hours = Math.floor((total % 86400) / 3600);
+    var mins = Math.floor((total % 3600) / 60);
+    var secs = total % 60;
+    function pad(n){ return (n < 10 ? "0" : "") + n; }
+    var clock = pad(hours) + ":" + pad(mins) + ":" + pad(secs);
+    return days > 0 ? (days + " д " + clock) : clock;
+  }
+
+  function showRevealTrigger(){
+    var countdown = document.getElementById("countdown");
+    var timeEl = document.getElementById("countdownTime");
+    var btn = document.getElementById("checkBtn");
+
+    function tick(){
+      var left = unlockAtMs - Date.now();
+      if(left <= 0){
+        if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+        countdown.hidden = true;
+        btn.hidden = false;
+        return;
+      }
+      countdown.hidden = false;
+      timeEl.textContent = formatTimeLeft(left);
+    }
+
+    tick();
+    if(!countdownTimer && unlockAtMs - Date.now() > 0){
+      countdownTimer = setInterval(tick, 1000);
+    }
   }
 
   var ytApiLoading = false;
