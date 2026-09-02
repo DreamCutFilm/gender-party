@@ -128,6 +128,46 @@
     min-height:20px;
   }
 
+  /* ---------- reveal: check button / video / result circle ---------- */
+  #poll-section{ position:relative; }
+  .reveal-confetti{
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:5;
+  }
+  .reveal-trigger{ text-align:center; margin-top:22px; }
+  .check-btn{
+    padding:14px 34px; border-radius:999px; border:none;
+    background:var(--gold); color:#FFF9F0; font:600 16px 'Karla',sans-serif;
+    letter-spacing:.02em; cursor:pointer; transition:background .15s ease, transform .15s ease;
+    box-shadow:0 14px 26px -14px var(--shadow);
+  }
+  .check-btn:hover{ background:#B5872A; transform:translateY(-2px); }
+  .check-btn:disabled{ opacity:.6; cursor:default; transform:none; }
+
+  .reveal-video{ margin-top:26px; position:relative; z-index:2; }
+  .reveal-video-inner{
+    aspect-ratio:9/16; max-width:280px; margin:0 auto;
+    border-radius:20px; overflow:hidden; background:#000;
+    box-shadow:0 18px 40px -20px var(--shadow);
+  }
+  .reveal-video-inner iframe, .reveal-video-inner div{ width:100%; height:100%; display:block; border:0; }
+
+  .reveal-result{ margin-top:26px; text-align:center; position:relative; z-index:2; }
+  .result-circle{
+    width:min(260px,70vw); aspect-ratio:1/1; margin:0 auto; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 20px 44px -18px var(--shadow);
+    animation:pop-in .5s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .result-circle.girl{ background:radial-gradient(circle at 35% 30%, #FDEEF3, var(--girl) 88%); }
+  .result-circle.boy{ background:radial-gradient(circle at 35% 30%, #EAF3F9, var(--boy) 88%); }
+  .result-text{
+    font-family:'Fraunces',serif; color:#FFF; text-shadow:0 2px 10px rgba(43,36,32,.28);
+    font-size:19px; line-height:1.3;
+  }
+  .result-text span{ display:block; font-size:clamp(26px,6vw,34px); font-weight:700; margin-top:2px; }
+  @keyframes pop-in{ from{ transform:scale(.6); opacity:0; } to{ transform:scale(1); opacity:1; } }
+
   /* ---------- wishes wall ---------- */
   .wish-form{
     display:flex; flex-direction:column; gap:10px; max-width:480px; margin:0 auto 32px;
@@ -205,6 +245,7 @@
   <hr class="divider">
 
   <section id="poll-section">
+    <canvas class="reveal-confetti" id="revealConfetti"></canvas>
     <h2 class="section-title">Ваш прогноз?</h2>
     <p class="section-lede">Проголосуйте, поки триває таємниця — після розкриття подивимось, хто вгадав більше.</p>
 
@@ -233,6 +274,22 @@
 
     <input class="poll-name" id="voterName" type="text" maxlength="40" placeholder="Ваше ім'я (щоб ми знали, хто вгадав) — необов'язково">
     <div class="poll-status" id="pollStatus"></div>
+
+    <div class="reveal-trigger">
+      <button class="check-btn" id="checkBtn" type="button" hidden>Перевірити 🔍</button>
+    </div>
+
+    <div class="reveal-video" id="revealVideo" hidden>
+      <div class="reveal-video-inner">
+        <div id="ytPlayer"></div>
+      </div>
+    </div>
+
+    <div class="reveal-result" id="revealResult" hidden>
+      <div class="result-circle" id="resultCircle">
+        <div class="result-text">В нас<br><span id="resultGender">дівчинка</span></div>
+      </div>
+    </div>
   </section>
 
   <svg class="stitch-border" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true"><rect width="320" height="18" fill="url(#stitch)"/></svg>
@@ -271,6 +328,11 @@
   // ====================================================================
   var SUPABASE_URL = "https://zojldsstrjtmfztgmtkj.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvamxkc3N0cmp0bWZ6dGdtdGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyOTM3MzIsImV4cCI6MjEwMzg2OTczMn0.9vi-_52mqXUF9sSx_8LwC34cN5AFADH93lP1xASXt6g";
+
+  // Відео-презентація розкриття: вставте своє посилання на YouTube (ID відео —
+  // частина посилання після /shorts/ або після v=) та результат ("boy" або "girl").
+  var REVEAL_VIDEO_ID = "27663dQYe3U"; // тестове відео, замініть на своє
+  var REVEAL_GENDER = "girl"; // тимчасово захардкоджено для тесту — потім підключимо до бази
   // ====================================================================
 
   var configured = SUPABASE_URL.indexOf("YOUR_SUPABASE_URL") === -1 &&
@@ -362,6 +424,7 @@
       status.textContent = choice === "boy"
         ? "Дякуємо! Ви вгадуєте на хлопчика."
         : "Дякуємо! Ви вгадуєте на дівчинку.";
+      showCheckButton();
     });
   }
 
@@ -373,7 +436,64 @@
     lockPollUI();
     document.getElementById(already === "boy" ? "voteBoy" : "voteGirl").classList.add("chosen");
     document.getElementById("pollStatus").textContent = "Ви вже проголосували раніше. Дякуємо!";
+    showCheckButton();
   }
+
+  // ==================== РОЗКРИТТЯ: КНОПКА → ВІДЕО → РЕЗУЛЬТАТ ====================
+  function showCheckButton(){
+    document.getElementById("checkBtn").hidden = false;
+  }
+
+  var ytApiLoading = false;
+  function loadYouTubeApi(cb){
+    if(window.YT && window.YT.Player){ cb(); return; }
+    if(!ytApiLoading){
+      ytApiLoading = true;
+      var tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    }
+    var prevReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function(){
+      if(prevReady) prevReady();
+      cb();
+    };
+  }
+
+  function showRevealResult(){
+    document.getElementById("revealVideo").hidden = true;
+    var isGirl = REVEAL_GENDER === "girl";
+    var circle = document.getElementById("resultCircle");
+    circle.classList.remove("boy","girl");
+    circle.classList.add(isGirl ? "girl" : "boy");
+    document.getElementById("resultGender").textContent = isGirl ? "дівчинка" : "хлопчик";
+    var resultBlock = document.getElementById("revealResult");
+    resultBlock.hidden = false;
+    spawnConfetti(document.getElementById("revealConfetti"), document.getElementById("poll-section"), REVEAL_GENDER);
+  }
+
+  document.getElementById("checkBtn").addEventListener("click", function(){
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Завантаження...";
+    loadYouTubeApi(function(){
+      btn.hidden = true;
+      document.getElementById("revealVideo").hidden = false;
+      new YT.Player("ytPlayer", {
+        width: "100%",
+        height: "100%",
+        videoId: REVEAL_VIDEO_ID,
+        playerVars: { autoplay: 1, playsinline: 1, rel: 0 },
+        events: {
+          onStateChange: function(e){
+            if(e.data === YT.PlayerState.ENDED){
+              showRevealResult();
+            }
+          }
+        }
+      });
+    });
+  });
 
   refreshCounts();
   sb.channel("guesses-live")
@@ -440,15 +560,17 @@
   }
   window.addEventListener("resize", sizeCanvas);
 
-  function launchConfetti(color){
+  function spawnConfetti(targetCanvas, container, color){
     if(reduceMotion) return;
-    sizeCanvas();
+    var tctx = targetCanvas.getContext("2d");
+    targetCanvas.width = container.clientWidth;
+    targetCanvas.height = container.clientHeight;
     var palette = color === "boy" ? ["#4C7EA8","#8FB6D6","#C9962E"] : ["#C9587A","#E7A9BE","#C9962E"];
     var pieces = [];
     for(var i=0;i<140;i++){
       pieces.push({
-        x: Math.random()*canvas.width,
-        y: -20 - Math.random()*canvas.height*0.5,
+        x: Math.random()*targetCanvas.width,
+        y: -20 - Math.random()*targetCanvas.height*0.5,
         vy: 2 + Math.random()*2.5,
         vx: (Math.random()-0.5)*1.6,
         size: 4 + Math.random()*5,
@@ -460,22 +582,26 @@
     var start = performance.now();
     function frame(now){
       var elapsed = now - start;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+      tctx.clearRect(0,0,targetCanvas.width,targetCanvas.height);
       pieces.forEach(function(p){
         p.x += p.vx; p.y += p.vy; p.rot += p.vr;
-        ctx.save();
-        ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
-        ctx.restore();
+        tctx.save();
+        tctx.translate(p.x,p.y); tctx.rotate(p.rot);
+        tctx.fillStyle = p.color;
+        tctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+        tctx.restore();
       });
       if(elapsed < 4200){
         requestAnimationFrame(frame);
       } else {
-        ctx.clearRect(0,0,canvas.width,canvas.height);
+        tctx.clearRect(0,0,targetCanvas.width,targetCanvas.height);
       }
     }
     requestAnimationFrame(frame);
+  }
+
+  function launchConfetti(color){
+    spawnConfetti(canvas, document.getElementById("stage"), color);
   }
 
   function applyReveal(row){
