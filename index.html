@@ -325,11 +325,14 @@
   // (+03:00 — літній час, діє до кінця жовтня; взимку буде +02:00).
   // Це фіксована мить у часі: перезавантаження сторінки нічого не скидає,
   // відлік у всіх гостей однаковий і завершується рівно о цій хвилині.
-  var UNLOCK_AT = "2026-09-02T23:12:00+03:00";
+  var UNLOCK_AT = "2026-09-02T23:25:00+03:00";
   // ====================================================================
 
   var configured = SUPABASE_URL.indexOf("YOUR_SUPABASE_URL") === -1 &&
                     SUPABASE_ANON_KEY.indexOf("YOUR_SUPABASE_ANON_KEY") === -1;
+
+  // Момент завантаження сторінки — потрібен лише для тестового режиму таймера.
+  var PAGE_LOADED_AT = Date.now();
 
   // ---- decorative flower wreath (drawn once, no external assets) ----
   (function drawWreath(){
@@ -464,23 +467,17 @@
   document.getElementById("voteBoy").addEventListener("click", function(){ castVote("boy"); });
   document.getElementById("voteGirl").addEventListener("click", function(){ castVote("girl"); });
 
-  var already = localStorage.getItem(votedKey);
-  if(already){
-    lockPollUI();
-    document.getElementById(already === "boy" ? "voteBoy" : "voteGirl").classList.add("chosen");
-    document.getElementById("pollStatus").textContent = "Ви вже проголосували раніше. Дякуємо!";
-    showRevealTrigger();
-  }
-
   // ============ РОЗКРИТТЯ: ТАЙМЕР → КНОПКА → ВІДЕО → РЕЗУЛЬТАТ ============
-  // Момент розблокування рахуємо один раз при завантаженні сторінки.
-  var unlockAtMs = (function(){
+  // ВАЖЛИВО: цей блок має стояти ВИЩЕ за перевірку "ви вже голосували" нижче,
+  // бо та перевірка запускає таймер одразу під час завантаження сторінки.
+  // Функція без збереженого стану — тоді порядок рядків узагалі не може її зламати.
+  function getUnlockAt(){
     if(typeof UNLOCK_TEST_MINUTES === "number"){
-      return Date.now() + UNLOCK_TEST_MINUTES * 60 * 1000;
+      return PAGE_LOADED_AT + UNLOCK_TEST_MINUTES * 60 * 1000;
     }
     var t = new Date(UNLOCK_AT).getTime();
     return isNaN(t) ? 0 : t; // некоректна дата — не блокуємо гостей
-  })();
+  }
 
   var countdownTimer = null;
 
@@ -501,8 +498,9 @@
     var btn = document.getElementById("checkBtn");
 
     function tick(){
-      var left = unlockAtMs - Date.now();
-      if(left <= 0){
+      var left = getUnlockAt() - Date.now();
+      // Якщо час чомусь не порахувався — краще відкрити кнопку, ніж показати NaN.
+      if(!isFinite(left) || left <= 0){
         if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
         countdown.hidden = true;
         btn.hidden = false;
@@ -513,7 +511,7 @@
     }
 
     tick();
-    if(!countdownTimer && unlockAtMs - Date.now() > 0){
+    if(!countdownTimer && getUnlockAt() - Date.now() > 0){
       countdownTimer = setInterval(tick, 1000);
     }
   }
@@ -568,6 +566,16 @@
       });
     });
   });
+
+  // Гість уже голосував раніше (з цього ж пристрою) — одразу показуємо йому таймер.
+  // Має йти ПІСЛЯ блоку таймера вище, інакше таймер стартує з незаповненими даними.
+  var already = localStorage.getItem(votedKey);
+  if(already){
+    lockPollUI();
+    document.getElementById(already === "boy" ? "voteBoy" : "voteGirl").classList.add("chosen");
+    document.getElementById("pollStatus").textContent = "Ви вже проголосували раніше. Дякуємо!";
+    showRevealTrigger();
+  }
 
   refreshCounts();
   sb.channel("guesses-live")
